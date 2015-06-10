@@ -18,9 +18,25 @@ CALL=${*}						# ex: --bare --no-pager clone --reference /path/to/repo "${REPO_U
 MIRROR_DIR="/$HOME/var/cache/gitmirror"		# FIXME
 
 {
-if $( echo "${CALL}" | grep --quiet " clone " -- ); then
-	GIT_COMMAND="clone"
-fi
+#if $( echo "${CALL}" | grep --quiet " clone " -- ); then
+#	GIT_COMMAND="clone"
+#fi
+
+case "${CALL}" in
+	*" clone "*)
+		GIT_COMMAND="clone"
+		;;
+	*" fetch "*)
+		GIT_COMAND="fetch"
+		;;
+	*" pull "*)
+		GIT_COMMAND="pull"
+		;;
+	*" remote update"*)
+		GIT_COMMAND="remote update"
+		;;
+esac
+
 } >/dev/null 2>&1
 
 # TODO 
@@ -33,7 +49,7 @@ fi
 
 case "${GIT_COMMAND}" in
 
-	clone)
+	"clone")
 	{
 		set -- $( echo $CALL )
 		while [ ${#} -ne 0 ]; do
@@ -113,6 +129,16 @@ case "${GIT_COMMAND}" in
 		NEW_CALL="$( echo "${CALL}" | sed -e 's|'"${REPO_URL}"'|'"${LOCAL_MIRROR}"'|' )"	# rewrites URL for our git clone call
 		/usr/bin/git ${NEW_CALL}
 	}
+	;;
+
+	"fetch"|"pull"|"remote update")
+		set -- $( git remote -v )
+		LOCAL_MIRROR="${2}"
+		TEMP_PATH="${LOCAL_MIRROR#file://}"
+		cd "${TEMP_PATH}"
+		/usr/bin/git remote update
+		cd "${_PWD}"
+		/usr/bin/git ${CALL}
 	;;
 
 	# any other git submodul call
