@@ -3,7 +3,7 @@
 
 # Setup
 
-Clone this repository and create a symlink to 'gitmirror/git' in '$HOME/bin', or in any other part of your '$PATH' which might suite your needs.
+Clone this repository and create a symlink from '$HOME/bin/git' to 'gitmirror/git', or in any other part of your '$PATH' which might suite your needs.
 
 # Usage
 
