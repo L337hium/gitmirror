@@ -13,7 +13,8 @@ URLS="http://git.openwrt.org/packages.git"
 
 
 cd $(dirname ${0} )
-for URL in ${URLS}; do
+for URL in "http://git.openwrt.org/packages.git" \ 
+	do
 
 	echo
 	echo "Testing ${URL}"
