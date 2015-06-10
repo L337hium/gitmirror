@@ -13,3 +13,11 @@ Just as you would normaly call `git`.
 
 To test edge and corner cases, there are test under 'tests/'. Please send feedback if you found a bug!
 
+# Debugging
+
+```
+# ed@ohsumi [ohsumi]:~/tmp/kalua/build-env [refs/heads/bernd|*] $
+script -t -c "rm -rf openwrt packages; ./build.sh --openwrt trunk; cd openwrt; ../build.sh --openwrt trunk --hardware 'TP-LINK TL-WDR3600' --usecase 'OpenWrt'" 2>timingfile
+less -r typescript
+```
+

@@ -1,24 +1,37 @@
 #!/bin/sh
+set -x
 set -e
 
-URLS="git@github.com:bittorf/kalua.git
-https://github.com/bittorf/kalua.git
-https://github.com/bittorf/kalua
-/tmp/gitmirror/github.com/bittorf/kalua.git
-file://tmp/gitmirror/github.com/bittorf/kalua.git
-file:///tmp/gitmirror/github.com/bittorf/kalua.git"
+#URLS="git@github.com:bittorf/kalua.git
+#https://github.com/bittorf/kalua.git
+#https://github.com/bittorf/kalua
+#/tmp/gitmirror/github.com/bittorf/kalua.git
+#file://tmp/gitmirror/github.com/bittorf/kalua.git
+#file:///tmp/gitmirror/github.com/bittorf/kalua.git"
+
+URLS="http://git.openwrt.org/packages.git"
+
 
 cd $(dirname ${0} )
 for URL in ${URLS}; do
+
 	echo
-	date
 	echo "Testing ${URL}"
-	set -x
-	sh ../git --no-pager --bare clone --branch bernd --depth 1 "${URL}" kalua
-	set +x
-	rm -r -f "./kalua"
+
+	for TEST in "git clone --depth 1" \
+				"git clone" \
+				"git --no-pager --bare clone --depth 1" \
+#				"git svn clone -r HEAD" \
+	do
+		date
+		echo "${TEST} ${URL}"
+		${TEST} ${URL}
+		rm -rf packages
+	done
+
 	#read -p "Press any key to continue..." readEnterKey
 done
 exit 0
 
 # --depth 1 does not work ?
+
