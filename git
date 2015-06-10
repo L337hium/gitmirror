@@ -1,6 +1,5 @@
 #!/bin/sh
-#set -x
-
+set -e
 # BUGS
 # * with `set -x` autocomplition for git breaks in my bash for now # set +x prevents this
 # * `git commit -m 'meg'` seams to be broken # workaround: `git commit`
@@ -17,7 +16,6 @@ CALL=${*}						# ex: --bare --no-pager clone --reference /path/to/repo "${REPO_U
 
 MIRROR_DIR="${HOME}/var/cache/gitmirror"		# FIXME
 
-{
 #if $( echo "${CALL}" | grep --quiet " clone " -- ); then
 #	GIT_COMMAND="clone"
 #fi
@@ -40,8 +38,6 @@ case ${CALL} in
 		;;
 esac
 
-} >/dev/null 2>&1
-
 # TODO 
 # Add support for
 # `git fetch`
@@ -52,8 +48,9 @@ esac
 case "${GIT_COMMAND}" in
 
 	clone)
-	{
-		set -- $( echo $CALL )
+		set -x
+		set -- $( echo "git ${CALL}" )
+
 		while [ ${#} -ne 0 ]; do
 		
 			if [ ${#} -eq 2 ]; then
@@ -125,14 +122,15 @@ case "${GIT_COMMAND}" in
 			cd "${LOCAL_MIRROR}"
 			/usr/bin/git remote update
 		fi
-		
+
 		# change directory back to our working directory
 		cd "${_PWD}"
-		NEW_CALL="$( 
-			echo "${CALL}" | sed -e 's|'"${REPO_URL}"'|file://'"${LOCAL_MIRROR}"'|' \
+		NEW_CALL="$( \
+			echo "${CALL}" | \
+				sed -e 's|'"${REPO_URL}"'|file://'"${LOCAL_MIRROR}"'|' \
 				)"	# rewrites URL for our git clone call
 		/usr/bin/git ${NEW_CALL}
-	}
+		set +x
 	;;
 
 #	fetch | pull | remote update)
@@ -150,4 +148,3 @@ case "${GIT_COMMAND}" in
 		/usr/bin/git ${CALL}
 	;;
 esac
-
