@@ -19,9 +19,9 @@ for URL in "http://git.openwrt.org/packages.git" \
 	echo
 	echo "Testing ${URL}"
 
-	for TEST in "git clone --depth 1" \
-				"git clone" \
-				"git --no-pager --bare clone --depth 1" \
+	for TEST in "sh -x ../git clone --depth 1" \
+				"sh -x ../git clone" \
+				"sh -x ../git --no-pager --bare clone --depth 1" \
 #				"git svn clone -r HEAD" \
 	do
 		date
@@ -30,7 +30,7 @@ for URL in "http://git.openwrt.org/packages.git" \
 		rm -rf packages
 	done
 
-	#read -p "Press any key to continue..." readEnterKey
+	read -p "Press any key to continue..." readEnterKey
 done
 exit 0
 
