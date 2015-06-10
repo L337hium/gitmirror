@@ -51,6 +51,11 @@ case "${GIT_COMMAND}" in
 		set -x
 		set -- $( echo "git ${CALL}" )
 
+		if [ ${#} -eq 2 ]; then
+			/usr/bin/git clone 2>&1 && exit 0
+			exit 1
+		fi
+
 		while [ ${#} -ne 0 ]; do
 		
 			if [ ${#} -eq 2 ]; then
