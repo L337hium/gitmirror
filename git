@@ -47,8 +47,8 @@ esac
 
 case "${GIT_COMMAND}" in
 
-	clone)
-		set -x
+	clone )
+#		set -x
 		set -- $( echo "git ${CALL}" )
 
 		if [ ${#} -eq 2 ]; then
@@ -103,10 +103,10 @@ case "${GIT_COMMAND}" in
 		)"
 
 		case ${LOCAL_PATH} in
-			*.git)
+			*.git )
 				:
 				;;
-			*)
+			* )
 				LOCAL_PATH="${LOCAL_PATH}.git"
 		esac
 		
@@ -135,21 +135,21 @@ case "${GIT_COMMAND}" in
 				sed -e 's|'"${REPO_URL}"'|file://'"${LOCAL_MIRROR}"'|' \
 				)"	# rewrites URL for our git clone call
 		/usr/bin/git ${NEW_CALL}
-		set +x
+#		set +x
 	;;
 
-#	fetch | pull | remote update)
-#		set -- $( git remote -v )
-#		LOCAL_MIRROR="${2}"
-#		TEMP_PATH="${LOCAL_MIRROR#file://}"
-#		cd "${TEMP_PATH}"
-#		/usr/bin/git remote update
-#		cd "${_PWD}"
-#		/usr/bin/git ${CALL}
-#	;;
+	"fetch" | "pull" | "remote update" )
+		set -- $( git remote -v )
+		LOCAL_MIRROR="${2}"
+		TEMP_PATH="${LOCAL_MIRROR#file://}"
+		cd "${TEMP_PATH}"
+		/usr/bin/git remote update
+		cd "${_PWD}"
+		/usr/bin/git ${CALL}
+;;
 
 	# any other git submodul call
-	*)
+	* )
 		/usr/bin/git ${CALL}
 	;;
 esac
