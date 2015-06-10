@@ -1,0 +1,114 @@
+#!/bin/sh
+#set -x
+set -e
+
+# This script expends the `git` command by creating a local mirror, from which then will be cloned to speed up a download process.
+#
+# 2) Get command, repo url, options and arguments
+# 3) ??
+# 4) Rewrite url to local path
+# 5) Pass call to `git`
+
+_PWD="$( pwd )"
+CALL=${*}						# ex: --bare --no-pager clone --reference /path/to/repo "${REPO_URL}" ["${REPO_NAME}"]
+
+MIRROR_DIR="/tmp/gitmirror"		# FIXME
+
+if $( echo "${CALL}" | grep --quiet "clone" -- ); then
+	GIT_COMMAND="clone"
+fi
+
+# TODO 
+# Add support for
+# `git fetch`
+# `git pull`
+# `git remote * update *`
+#
+
+case "${GIT_COMMAND}" in
+
+	clone)
+	{
+		set -- $( echo $CALL )
+		while [ ${#} -ne 0 ]; do
+		
+			if [ ${#} -eq 2 ]; then
+		
+				_ARG1=${1}
+				shift
+				_ARG2=${1}
+				
+				case ${_ARG2} in 
+					*@*|*://*|*/*)
+						REPO_URL="${_ARG2}"
+						;;
+					*)
+						REPO_URL="${_ARG1}"
+						REPO_NAME="${_ARG2}"
+						;;
+				esac
+			else
+				shift
+			fi
+		done
+		
+		# FIXME
+		# See: http://stackoverflow.com/a/2514986
+		# This does not reflect all posiblitys
+		# TODO: Match any user @ any host
+
+		# Strip the following character from URL to build a path
+		# any schema			*://*
+		# user name				.*@
+		# local $MIRROR_DIR		
+		# port number			:[0-9]+ 	# TODO ?
+		# 
+		LOCAL_PATH="$( 
+			echo $REPO_URL | \
+			sed -e 's|.*://||' \
+				-e 's|.*@||' \
+				-e 's|[/]*tmp/gitmirror||' \
+				-e 's|:|/|' \
+				-e 's|:/|/|'\
+				-- \
+		)"
+
+		case ${LOCAL_PATH} in
+			*.git)
+				:
+				;;
+			*)
+				LOCAL_PATH="${LOCAL_PATH}.git"
+		esac
+		
+		LOCAL_MIRROR="${MIRROR_DIR}/${LOCAL_PATH}"	# ex: /tmp/gitmirror/github.com/bittorf/kalua.git
+		REPO_DIR="${LOCAL_PATH##*/}"				# ex: kalua.git
+
+		if [ -z ${REPO_DIR} ]; then
+			exit 1
+		fi
+
+		if [ ! -d "${LOCAL_MIRROR}" ]; then
+			TEMP_PATH="${LOCAL_MIRROR%/*}"			# ex: /tmp/gitmirror/github.com/bittorf
+			mkdir -p "${TEMP_PATH}"
+			cd "${TEMP_PATH}"
+			/usr/bin/git ${GIT_OPTS} clone --mirror ${REPO_URL}
+
+		else
+			cd "${LOCAL_MIRROR}"
+			/usr/bin/git remote update
+		fi
+		
+		# change directory back to our working directory
+		cd "${_PWD}"
+		NEW_CALL="$( echo "${CALL}" | sed -e 's|'"${REPO_URL}"'|file://'"${LOCAL_MIRROR}"'|' )"	# rewrites URL in our git clone call
+		/usr/bin/git ${NEW_CALL}
+	}
+	;;
+
+	# any other git submodul call
+	*)
+		/usr/bin/git ${CALL}
+	;;
+esac
+

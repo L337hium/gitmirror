@@ -1,0 +1,15 @@
+
+'gitmirror' provides a wrapper script around `git`, which in case of `git clone` uses a local mirror to clone from.
+
+# Setup
+
+Clone this repository and create a symlink to 'gitmirror/git' in '$HOME/bin', or in any other part of your '$PATH' which might suite your needs.
+
+# Usage
+
+Just as you would normaly call `git`.
+
+# Tests
+
+To test edge and corner cases, there are test under 'tests/'. Please send feedback if you found a bug!
+
