@@ -5,9 +5,9 @@ set -e
 #URLS="git@github.com:bittorf/kalua.git
 #https://github.com/bittorf/kalua.git
 #https://github.com/bittorf/kalua
-#/tmp/gitmirror/github.com/bittorf/kalua.git
-#file://tmp/gitmirror/github.com/bittorf/kalua.git
-#file:///tmp/gitmirror/github.com/bittorf/kalua.git"
+#$HOME/var/cache/gitmirror/github.com/bittorf/kalua.git
+#file://$HOME/var/cache/gitmirror/github.com/bittorf/kalua.git
+#file:///$HOME/var/cache/gitmirror/github.com/bittorf/kalua.git"
 
 URLS="http://git.openwrt.org/packages.git"
 
