@@ -11,7 +11,7 @@ Just as you would normaly call `git`.
 
 # Tests
 
-To test edge and corner cases, there are test under 'tests/'. Please send feedback if you found a bug!
+To test edge and corner cases, there are some tests under 'tests/'. Please send feedback if you found a bug!
 
 # Debugging
 
