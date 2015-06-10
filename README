@@ -17,7 +17,11 @@ To test edge and corner cases, there are test under 'tests/'. Please send feedba
 
 ```
 # ed@ohsumi [ohsumi]:~/tmp/kalua/build-env [refs/heads/bernd|*] $
-script -t -c "rm -rf openwrt packages; ./build.sh --openwrt trunk; cd openwrt; ../build.sh --openwrt trunk --hardware 'TP-LINK TL-WDR3600' --usecase 'OpenWrt'" 2>timingfile
+script -t=timingfile -c "rm -rf openwrt packages; ./build.sh --openwrt trunk; cd openwrt; ../build.sh --openwrt trunk --hardware 'TP-LINK TL-WDR3600' --usecase 'OpenWrt'" typescript
 less -r typescript
 ```
+
+# Known bugs
+
+* `git commit -m 'msg'` breaks
 

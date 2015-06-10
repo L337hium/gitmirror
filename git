@@ -2,7 +2,8 @@
 #set -x
 
 # BUGS
-# autocomplition in my bash is broken for git now -.-
+# * with `set -x` autocomplition for git breaks in my bash for now # set +x prevents this
+# * `git commit -m 'meg'` seams to be broken # workaround: `git commit`
 
 # This script expends the `git` command by creating a local mirror, from which then will be cloned to speed up a download process.
 #
@@ -14,10 +15,10 @@
 _PWD="$( pwd )"
 CALL=${*}						# ex: --bare --no-pager clone --reference /path/to/repo "${REPO_URL}" ["${REPO_NAME}"]
 
-MIRROR_DIR="/tmp/gitmirror"		# FIXME
+MIRROR_DIR="/$HOME/var/cache/gitmirror"		# FIXME
 
 {
-if $( echo "${CALL}" | grep --quiet "clone" -- ); then
+if $( echo "${CALL}" | grep --quiet " clone " -- ); then
 	GIT_COMMAND="clone"
 fi
 } >/dev/null 2>&1
@@ -74,7 +75,7 @@ case "${GIT_COMMAND}" in
 			echo $REPO_URL | \
 			sed -e 's|.*://||' \
 				-e 's|.*@||' \
-				-e 's|[/]*tmp/gitmirror||' \
+				-e 's|[/]*$HOME/var/cache/gitmirror||' \
 				-e 's|:|/|' \
 				-e 's|:/|/|'\
 				-e 's|^\./||' \
@@ -89,7 +90,7 @@ case "${GIT_COMMAND}" in
 				LOCAL_PATH="${LOCAL_PATH}.git"
 		esac
 		
-		LOCAL_MIRROR="${MIRROR_DIR}/${LOCAL_PATH}"	# ex: /tmp/gitmirror/github.com/bittorf/kalua.git
+		LOCAL_MIRROR="${MIRROR_DIR}/${LOCAL_PATH}"	# ex: /$HOME/var/cache/gitmirror/github.com/bittorf/kalua.git
 		REPO_DIR="${LOCAL_PATH##*/}"				# ex: kalua.git
 
 		if [ -z ${REPO_DIR} ]; then
@@ -97,7 +98,7 @@ case "${GIT_COMMAND}" in
 		fi
 
 		if [ ! -d "${LOCAL_MIRROR}" ]; then
-			TEMP_PATH="${LOCAL_MIRROR%/*}"			# ex: /tmp/gitmirror/github.com/bittorf
+			TEMP_PATH="${LOCAL_MIRROR%/*}"			# ex: /$HOME/var/cache/gitmirror/github.com/bittorf
 			mkdir -p "${TEMP_PATH}"
 			cd "${TEMP_PATH}"
 			/usr/bin/git ${GIT_OPTS} clone --mirror ${REPO_URL}
