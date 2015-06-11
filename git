@@ -11,6 +11,9 @@
 # TODO 
 # How do react 'pull', 'fetch', 'merge' and 'remote update' ?
 
+# BUGS
+# * if the <URL> comes somewhere in the call, then the URL and NAME detection will fail
+
 REPO_URL=""
 REPO_NAME=""
 
@@ -34,7 +37,7 @@ is_git_repo_url()
 			--regexp=".*://.*" \
 			--regexp=".*@.*" \
 			--regexp=".*\.git$" \
-			--regexp=".*\.git/$"
+			--regexp=".*\.git/$" 2>&1 >/dev/null
 	# if we can't find something, make guess if it is a directory
 	if [ $? -ne 0 ]; then
 		is_git_dir "${1}"
@@ -235,24 +238,25 @@ case "${ARGS}" in
 				-e 's|^.*://||' \
 				-e 's|:|/|g' \
 				-e 's|"||g' \
-		)"
+			)"
 		LOCAL_MIRROR_REPO_PATH="${MIRROR_DIR}/${REPO_PATH}" # ex: /home/ed/var/cache/gitmirror/git@github.org/bittorf/kalua.git
 		if [ -d $LOCAL_MIRROR_REPO_PATH ]; then
 			cd $LOCAL_MIRROR_REPO_PATH
 			/usr/bin/git remote update
 		else
-			mkdir -p "${LOCAL_MIRROR_REPO_PATH%/*}"
+			mkdir -p "${LOCAL_MIRROR_REPO_PATH%/*}"  # ex: /home/ed/var/cache/gitmirror/git@github.org/bittorf
 			cd "${LOCAL_MIRROR_REPO_PATH%/*}"
 
 			echo $( eval exec /usr/bin/git clone --mirror $REPO_URL ) 2>&1 >/dev/null
 		fi
 
 		cd "${_PWD}"
+		# TODO: Is this nessesary?
 		NEW_CLONE_CALL=$( echo $ARGS \
 			| sed \
 				-e 's|--quiet||' \
 			)
-		#echo $( eval exec /usr/bin/git ${ARGS} --reference ${LOCAL_MIRROR_REPO_PATH} )
+		#echo $( eval exec /usr/bin/git ${ARGS} --reference ${LOCAL_MIRROR_REPO_PATH} ) 2>&1 >/dev/null
 		echo $( eval exec /usr/bin/git ${NEW_CLONE_CALL} --reference ${LOCAL_MIRROR_REPO_PATH} ) 2>&1 >/dev/null
 	;;
 	
