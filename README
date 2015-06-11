@@ -23,5 +23,3 @@ less -r typescript
 
 # Known bugs
 
-* `git commit -m 'msg'` breaks
-
