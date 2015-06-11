@@ -90,8 +90,8 @@ guess_repo_url_and_name()
 			# aka
 			# just pass the call and die
 			# TODO
-			:
-
+			eval exec /usr/bin/git ${ARGS}
+			
 		#########################
 		#      $i  <= 3		
 		elif [ $i -le 3 ]; then
@@ -253,7 +253,7 @@ case "${ARGS}" in
 				-e 's|--quiet||' \
 			)
 		#echo $( eval exec /usr/bin/git ${ARGS} --reference ${LOCAL_MIRROR_REPO_PATH} )
-		echo $( eval exec /usr/bin/git ${NEW_CLONE_CALL} --reference ${LOCAL_MIRROR_REPO_PATH} )
+		echo $( eval exec /usr/bin/git ${NEW_CLONE_CALL} --reference ${LOCAL_MIRROR_REPO_PATH} ) 2>&1 >/dev/null
 	;;
 	
 	* )
