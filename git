@@ -1,158 +1,264 @@
 #!/bin/sh
-set -e
-# BUGS
-# * `git commit -m 'meg'` seams to be broken # workaround: `git commit`
+#set -e
 
-# This script expends the `git` command by creating a local mirror, from which then will be cloned to speed up a download process.
+# v0.2
+# TODO
+# Only interfere with `git` calls when they are `git clone` calls.
+# When 'clone' is called, setup a '--mirror' or update the mirror-repo with the helper script.
+# So we prevent the situation of having an extra orgin path, and would have to setup
+# an extra remote to push back upstream
 #
-# 2) Get command, repo url, options and arguments
-# 3) ??
-# 4) Rewrite url to local path
-# 5) Pass call to `/usr/bin/git`
-
-_PWD="$( pwd )"
-#CALL=${*}
-CALL=${@}						# ex: --bare --no-pager clone --reference /path/to/repo "${REPO_URL}" ["${REPO_NAME}"]
-#CALL="${*}"
-#CALL="${@}"
-
-MIRROR_DIR="${HOME}/var/cache/gitmirror"		# FIXME
-
-#if $( echo "${CALL}" | grep --quiet " clone " -- ); then
-#	GIT_COMMAND="clone"
-#fi
-
-case ${CALL} in
-	*clone* )
-		GIT_COMMAND="clone"
-		;;
-	*fetch* )
-		GIT_COMMAND="fetch"
-		;;
-	*pull* )
-		GIT_COMMAND="pull"
-		;;
-	*"remote update"* )
-		GIT_COMMAND="remote update"
-		;;
-	* )
-		:
-		;;
-esac
-
 # TODO 
-# Add support for
-# `git fetch`
-# `git pull`
-# `git remote * update *`
-#
+# How do react 'pull', 'fetch', 'merge' and 'remote update' ?
 
-case "${GIT_COMMAND}" in
+REPO_URL=""
+REPO_NAME=""
 
-	clone )
-#		set -x
-		set -- $( echo "git ${CALL}" )
+##############
+is_git_dir()
+{
+	test -d "${1}/.git" 
+}
 
-		if [ ${#} -eq 2 ]; then
-			/usr/bin/git clone 2>&1 && exit 0
-			exit 1
-		fi
+###################
+is_git_repo_url()
+{
+	# Tests on
+	#	protocoll
+	# 	user@host
+	#	is a [local] reposity with absolute path
+	#	is a [local] reposity with a slash at the end
+	#	is it justed a path ending on ".git"
+	echo "${1}" | \
+		grep \
+			--regexp=".*://.*" \
+			--regexp=".*@.*" \
+			--regexp=".*\.git$" \
+			--regexp=".*\.git/$"
+	# if we can't find something, make guess if it is a directory
+	if [ $? -ne 0 ]; then
+		is_git_dir "${1}"
+	fi
+}
 
-		while [ ${#} -ne 0 ]; do
+###########################
+guess_repo_url_and_name()
+{
+	# Gets all arguments
+
+		# Possibilities via `man git-clone`
+		#
+		#	URL: 	schema://user@host.tld:port/path/to.git		# and others
+		#	NAME:	path
+		#			./path/to/dir
+		#			/path/to/dir
+		#
+		#		1		2			3			4		5					6		7		8
+		#	git	clone
+		#	git	clone	<PATH>
+		#	git clone	--no-pager	<URL>
+		#	git	clone	<PATH>		<NAME>
+		#	git clone 	--quiet		<URL>		<NAME>
+		#	git	clone	--no-pager	--verbose	<URL>
+		# 	git clone 	--reference <PATH> 		<URL>
+		#	git clone 	--reference <PATH> 		<URL> 	<NAME>
+		#	git	clone	--reference	<PATH>		--s-g-d	<PATH>				<PATH>
+		#	git	clone	--reference	<PATH>		--s-g-d	<PATH>				<PATH>	<NAME>
+		#	git	clone	--quiet		--reference	<PATH>	--seperate-git-dir 	<PATH>	<PATH>
+		#	git	clone	--quiet		--reference	<PATH>	--seperate-git-dir 	<PATH>	<PATH>	<NAME>
+		#	git	clone	--verbose	--reference	<PATH>	--progress			<PATH>
+		#	git	clone	--verbose	--reference	<PATH>	--progress			<PATH>	<NAME>
+
+		# But in the end it seams simple, because if something goes through `git clone` will through an error...
+		# So the choise is limited to: 
+		# When not only the last argument is a valid repo,
+		# but also the second last, then
+
+		set -- $( echo ${ARGS} )
+		i=$#
+
+		# last
+		# second_last
+		# before_second_last
 		
-			if [ ${#} -eq 2 ]; then
-		
-				_ARG1=${1}
-				shift
-				_ARG2=${1}
-				
-				case ${_ARG2} in 
-					*@*|*://*|/*)
-						REPO_URL="${_ARG2}"
-#						REPO_NAME=""
-						;;
-					*)
-						REPO_URL="${_ARG1}"
-						REPO_NAME="${_ARG2}"
-						;;
-				esac
-			else
-				shift
+		#######################
+		#    $i  == 1
+		if [ $i -eq 1 ]; then
+			# 	git
+			# aka
+			# show git clone help
+			# aka
+			# just pass the call and die
+			# TODO
+			:
+
+		#########################
+		#      $i  <= 3		
+		elif [ $i -le 3 ]; then
+
+			last="$( echo ${ARGS}        | awk '{ print $'${i}' }' )"          # the last one
+			second_last="$( echo ${ARGS} | awk '{ print $'$(( i - 1 ))' }' )"   # the second last one
+
+			is_git_repo_url ${last}
+			if [ $? -eq 0 ]; then
+				REPO_URL=${last}
 			fi
-		done
+
+			is_git_repo_url ${second_last} 
+			if [ $? -eq 0 ]; then
+				REPO_URL=${second_last}
+				REPO_NAME=${last}
+			fi
 		
-		# FIXME
-		# See: http://stackoverflow.com/a/2514986
-		# This does not reflect all posiblitys
-		# TODO: Match any user @ any host
+		#########################
+		#      $i  >=4
+		elif [ $i -ge 4 ]; then
+			
+			last="$( echo ${ARGS}               | awk '{ print $'${i}' }' )"           # the last one
+			second_last="$( echo ${ARGS}        | awk '{ print $'$(( i - 1 ))' }' )"    # the second last one
+			before_second_last="$( echo ${ARGS} | awk '{ print $'$(( i - 2  ))' }' )"  # the one before the second last one
+			
+#				0	0	1
+#				0	1	0
+#				0	1	1
+#				1	1	0
+#				1	1	1
 
-		# Strip the following character from URL to build a path
-		# any schema			*://*
-		# user name				.*@
-		# local $MIRROR_DIR		
-		# port number			:[0-9]+ 	# TODO ?
-		# 
-		#						./
-		LOCAL_PATH="$( 
-			echo $REPO_URL | \
-			sed -e 's|.*://||' \
-				-e 's|.*@||' \
-				-e 's|[/]*$HOME/var/cache/gitmirror||' \
-				-e 's|:|/|' \
-				-e 's|:/|/|'\
-				-e 's|^\./||' \
-				-- \
-		)"
+			is_git_repo_url "${last}"
+			if [ $? -ne 0 ]; then
+				is_git_repo_url "${second_last}"
+				if [ $? -eq 0 ]; then
+					REPO_URL="${second_last}"
+					REPO_NAME="${last}"
+				fi
+			else
+				REPO_URL="${last}"
+			fi
 
-		case ${LOCAL_PATH} in
-			*.git )
-				:
-				;;
-			* )
-				LOCAL_PATH="${LOCAL_PATH}.git"
-		esac
+		fi
 		
-		LOCAL_MIRROR="${MIRROR_DIR}/${LOCAL_PATH}"	# ex: /$HOME/var/cache/gitmirror/github.com/bittorf/kalua.git
-		REPO_DIR="${LOCAL_PATH##*/}"				# ex: kalua.git
+}
 
-		if [ -z ${REPO_DIR} ]; then
+
+#################### this finaly works!
+# http://yosefk.com/blog/passing-shell-script-arguments-to-a-subprocess.html
+# We need this to rewrite the argument list, to not split arguments which contains spaces!
+#
+{
+	ARGC=$#
+	ARGS=
+	j=$ARGC
+	i=1
+	while [ ${j} -ge 1 ]
+	do
+		ARGS=""$ARGS" \"$1\""
+		if [ ${ARGC} -eq 1 ]; then
+			break
+		else
+			j=$(( $j -1 ))
+			i=$(( $i + 1 ))
+			shift
+		fi
+	done
+}
+
+####################
+case "${ARGS}" in
+
+	*"clone"* )
+
+		MIRROR_DIR="${HOME}/var/cache/gitmirror"
+		_PWD="$( pwd )"
+
+#		{
+#		cd ${MIRROR_DIR}
+#		mkdir tmp
+#		FLAT_CLONE="$( echo $ARGS | sed 's|clone |clone --depth 1 |' -- )"
+#		eval exec /usr/bin/git ${FLAT_CLONE}
+#		for repo in tmp/; do
+#			ORIGINAL_REPO_NAME="${repo}"
+#			cd "${repo}"
+#		done
+#
+#		# parse url
+#		set -- "$( git remote -v )"
+#		REPO_URL="${2}"										# ex: 	git@github.com:weimarnetz/weimarnetz.git
+#															#		https://github.com/weimarnetz/weimarnetz.git
+#															# 		https://github.com/weimarnetz/weimarnetz
+#		cd ..
+#		rm -rf tmp
+#
+#		# rewrite url by removing "schema://"
+#		# the remaining should be valid on linux/unix filesystems...
+#		REPO_PATH="$( echo $REPO_URL | \
+#			sed -e 's|.*://||' \
+#				-- \
+#		)"													# ex: git@github.org/bittorf/kalua.git
+#
+#		LOCAL_MIRROR_REPO_PATH="${MIRROR_DIR}/${REPO_PATH}" # ex: /home/ed/var/cache/gitmirror/git@github.org/bittorf/kalua.git
+#
+#		mkdir -p "${LOCAL_MIRROR_REPO_PATH%/*}" 			# ex: /home/ed/var/cache/gitmirror/git@github.org/bittorf
+#		eval exec /usr/bin/git clone --mirror "${REPO_URL}"
+#		# \o/
+#		
+#		cd ${_PWD}
+#		NEW_CLONE_CALL="$( echo $ARGS \
+#			| sed \
+#				-e 's|clone |clone --reference '"${LOCAL_MIRROR_REPO_PATH}"' |' \
+#				-e 's| --quiet||' \
+#			-- )"
+#		# I want to die!
+#		CLONED_REPO_DIR="$( 
+#			eval exec /usr/bin/git ${NEW_CLONE} \
+#				| grep '^Cloning' \
+#				| awk '{ print $3 }' \
+#				| tail -n 1 \
+#				| sed -e "s/'//g" -e "s/\.\.\.//" \
+#			)"
+#
+#		cd "${CLONED_REPO_DIR}"
+#		eval exec /usr/bin/git remote add local-mirror ${LOCAL_MIRROR_REPO}
+#		}
+
+
+		# TODO
+		# rewrite url by removing "schema://"
+		# the remaining should be valid on linux/unix filesystems...
+
+		guess_repo_url_and_name
+		if [ -z ${REPO_URL} ]; then
 			exit 1
 		fi
 
-		if [ ! -d "${LOCAL_MIRROR}" ]; then
-			TEMP_PATH="${LOCAL_MIRROR%/*}"			# ex: /$HOME/var/cache/gitmirror/github.com/bittorf
-			mkdir -p "${TEMP_PATH}"
-			cd "${TEMP_PATH}"
-			/usr/bin/git ${GIT_OPTS} clone --mirror ${REPO_URL}
-
-		else
-			cd "${LOCAL_MIRROR}"
+		REPO_PATH="$( echo "${REPO_URL}" \
+			| sed \
+				-e 's|^.*://||' \
+				-e 's|:|/|g' \
+				-e 's|"||g' \
+		)"
+		LOCAL_MIRROR_REPO_PATH="${MIRROR_DIR}/${REPO_PATH}" # ex: /home/ed/var/cache/gitmirror/git@github.org/bittorf/kalua.git
+		if [ -d $LOCAL_MIRROR_REPO_PATH ]; then
+			cd $LOCAL_MIRROR_REPO_PATH
 			/usr/bin/git remote update
+		else
+			mkdir -p "${LOCAL_MIRROR_REPO_PATH%/*}"
+			cd "${LOCAL_MIRROR_REPO_PATH%/*}"
+
+			echo $( eval exec /usr/bin/git clone --mirror $REPO_URL ) 2>&1 >/dev/null
 		fi
 
-		# change directory back to our working directory
 		cd "${_PWD}"
-		NEW_CALL="$( \
-			echo "${CALL}" | \
-				sed -e 's|'"${REPO_URL}"'|file://'"${LOCAL_MIRROR}"'|' \
-				)"	# rewrites URL for our git clone call
-		/usr/bin/git ${NEW_CALL}
-#		set +x
+		NEW_CLONE_CALL=$( echo $ARGS \
+			| sed \
+				-e 's|--quiet||' \
+			)
+		#echo $( eval exec /usr/bin/git ${ARGS} --reference ${LOCAL_MIRROR_REPO_PATH} )
+		echo $( eval exec /usr/bin/git ${NEW_CLONE_CALL} --reference ${LOCAL_MIRROR_REPO_PATH} )
 	;;
-
-	"fetch" | "pull" | "remote update" )
-		set -- $( git remote -v )
-		LOCAL_MIRROR="${2}"
-		TEMP_PATH="${LOCAL_MIRROR#file://}"
-		cd "${TEMP_PATH}"
-		/usr/bin/git remote update
-		cd "${_PWD}"
-		/usr/bin/git ${CALL}
-;;
-
-	# any other git submodul call
+	
 	* )
-		# TODO In case of commit, all arguments behind '-m' should be grouped together via quotes.
-		/usr/bin/git ${CALL}
+		eval exec /usr/bin/git ${ARGS}
 	;;
+
 esac
+
