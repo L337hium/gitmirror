@@ -1,7 +1,6 @@
 #!/bin/sh
 set -e
 # BUGS
-# * with `set -x` autocomplition for git breaks in my bash for now # set +x prevents this
 # * `git commit -m 'meg'` seams to be broken # workaround: `git commit`
 
 # This script expends the `git` command by creating a local mirror, from which then will be cloned to speed up a download process.
@@ -12,7 +11,10 @@ set -e
 # 5) Pass call to `/usr/bin/git`
 
 _PWD="$( pwd )"
-CALL=${*}						# ex: --bare --no-pager clone --reference /path/to/repo "${REPO_URL}" ["${REPO_NAME}"]
+#CALL=${*}
+CALL=${@}						# ex: --bare --no-pager clone --reference /path/to/repo "${REPO_URL}" ["${REPO_NAME}"]
+#CALL="${*}"
+#CALL="${@}"
 
 MIRROR_DIR="${HOME}/var/cache/gitmirror"		# FIXME
 
@@ -150,6 +152,7 @@ case "${GIT_COMMAND}" in
 
 	# any other git submodul call
 	* )
+		# TODO In case of commit, all arguments behind '-m' should be grouped together via quotes.
 		/usr/bin/git ${CALL}
 	;;
 esac
